@@ -25,11 +25,17 @@ import { RolesGuard } from './guards/roles.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true}),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      synchronize: true,
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
+        synchronize: process.env.NODE_ENV !== 'production',
+        autoLoadEntities: true,
+        ssl: process.env.NODE_ENV === 'production' // Habilita SSL solo en producción
+          ? { rejectUnauthorized: false } // Necesario para Render y otros PaaS
+          : false,
+      }),
     }),
 
     ContainerModule,  
