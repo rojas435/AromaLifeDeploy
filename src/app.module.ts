@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './accounts/user/user.module';
 import { FragranceModule } from './fragrance/fragrance/fragrance.module';
 import { ContainerModule } from './candles/container/container.module';
@@ -27,6 +27,7 @@ import { RolesGuard } from './guards/roles.guard';
     ConfigModule.forRoot({ isGlobal: true}),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
