@@ -1,0 +1,26 @@
+name: Run E2E Tests
+
+on:
+  push:
+    branches: [main, master]  # Cambia según tu rama principal
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.14.0'  # Tu versión local exacta
+
+      - name: Instalar dependencias
+        run: yarn install
+
+      - name: Ejecutar pruebas E2E
+        run: yarn test:e2e
