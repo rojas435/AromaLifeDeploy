@@ -1,8 +1,15 @@
+// src/app.module.ts
+
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard'; 
+// RolesGuard, si no es global, no se importa aquí
+
+// --- IMPORTACIONES DE MÓDULOS (ESTAS ESTÁN BIEN COMO LAS TENÍAS) ---
 import { UserModule } from './accounts/user/user.module';
 import { FragranceModule } from './fragrance/fragrance/fragrance.module';
 import { ContainerModule } from './candles/container/container.module';
@@ -18,24 +25,21 @@ import { OrderItemModule } from './order_process/order-item/order-item.module';
 import { SubscriptionModule } from './order_process/subscription/subscription.module';
 import { EmotionalStateFragranceModule } from './fragrance/emotional-state_fragrance/emotional-state_fragrance.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auth/jwt-auth.guard'; 
-import { RolesGuard } from './guards/roles.guard';
 
-//Entidades para typeORM
+// --- IMPORTACIONES DE LAS CLASES DE ENTIDAD (¡MANTENER ESTAS IMPORTACIONES!) ---
 import { User } from './accounts/user/entities/user.entity';
 import { Fragrance } from './fragrance/fragrance/entities/fragrance.entity';
 import { Container } from './candles/container/entities/container.entity';
-import { ConceptualCategory } from './scent_profiles/conceptual-category/entities/conceptual-category.entity'; // Asumo que tienes una entidad aquí
-import { Option } from './scent_profiles/options/entities/option.entity'; // Asumo 'Option' y no 'Options' para la clase entidad
-import { EmotionalState } from './scent_profiles/emotional-state/entities/emotional-state.entity'; // Asumo que tienes una entidad aquí
-import { FragrancePyramid } from './fragrance/fragrance-pyramid/entities/fragrance-pyramid.entity'; // Asumo que tienes una entidad aquí
-import { ComplementaryProduct } from './candles/complementary-product/entities/complementary-product.entity'; // Asumo que tienes una entidad aquí
-import { CustomCandle } from './candles/custom-candle/entities/custom-candle.entity'; // Asumo que tienes una entidad aquí
-import { CustomCandleComplementaryProduct } from './candles/custom-candle_complementary-product/entities/custom-candle_complementary-product.entity'; // Asumo que tienes una entidad aquí
-import { Order } from './order_process/orders/entities/order.entity'; // Asumo 'Order' y no 'Orders' para la clase entidad
-import { OrderItem } from './order_process/order-item/entities/order-item.entity'; // Asumo que tienes una entidad aquí
-import { Subscription } from './order_process/subscription/entities/subscription.entity'; // Asumo que tienes una entidad aquí
+import { ConceptualCategory } from './scent_profiles/conceptual-category/entities/conceptual-category.entity';
+import { Option } from './scent_profiles/options/entities/option.entity';
+import { EmotionalState } from './scent_profiles/emotional-state/entities/emotional-state.entity';
+import { FragrancePyramid } from './fragrance/fragrance-pyramid/entities/fragrance-pyramid.entity';
+import { ComplementaryProduct } from './candles/complementary-product/entities/complementary-product.entity';
+import { CustomCandle } from './candles/custom-candle/entities/custom-candle.entity';
+import { CustomCandleComplementaryProduct } from './candles/custom-candle_complementary-product/entities/custom-candle_complementary-product.entity';
+import { Order } from './order_process/orders/entities/order.entity';
+import { OrderItem } from './order_process/order-item/entities/order-item.entity';
+import { Subscription } from './order_process/subscription/entities/subscription.entity';
 import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/entities/emotional-state_fragrance.entity';
 
 @Module({
@@ -46,20 +50,24 @@ import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/e
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const dbUrl = configService.get<string>('DATABASE_URL');
-        const nodeEnv = configService.get<string>('NODE_ENV'); // Obtener NODE_ENV desde ConfigService también
+        const nodeEnv = configService.get<string>('NODE_ENV', 'development'); // Default a development si no está seteada
         const isProduction = nodeEnv === 'production';
 
-        // Logging para depurar
-        console.log(`[AppModule] DATABASE_URL: ${dbUrl ? '**** (set)' : 'NOT SET'}`); // No loguear la URL completa por seguridad
-        console.log(`[AppModule] NODE_ENV: ${nodeEnv}`);
-        console.log(`[AppModule] Is Production: ${isProduction}`);
-        console.log(`[AppModule] SSL setting for DB: ${isProduction && dbUrl && dbUrl.includes('render.com')}`);
-        console.log(`[AppModule] Synchronize setting for DB: true (TEMPORALMENTE para crear tablas)`);
+        // Logging reducido para producción (opcional)
+        if (isProduction) {
+          console.log(`[AppModule-Prod] Initializing DB connection. NODE_ENV: ${nodeEnv}`);
+        } else {
+          // Logs más detallados para desarrollo si quieres
+          console.log(`[AppModule-Dev] DATABASE_URL: ${dbUrl ? '**** (set)' : 'NOT SET'}`);
+          console.log(`[AppModule-Dev] NODE_ENV: ${nodeEnv}`);
+          console.log(`[AppModule-Dev] Is Production: ${isProduction}`);
+          console.log(`[AppModule-Dev] SSL setting for DB: ${isProduction && dbUrl && dbUrl.includes('render.com')}`);
+        }
 
         return {
           type: 'postgres',
           url: dbUrl,
-          entities: [
+          entities: [ // ¡SEGUIR LISTANDO LAS ENTIDADES EXPLÍCITAMENTE ES BUENA PRÁCTICA!
             User,
             Fragrance,
             Container,
@@ -75,17 +83,21 @@ import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/e
             Subscription,
             EmotionalStateFragrance,
           ],
-          // autoLoadEntities: true, // Comentado porque listar explícitamente es mejor
           
-          synchronize: true, // ¡MUY IMPORTANTE PARA ESTE PASO!
-          // Una vez que las tablas se creen, cambia esto a:
-          // synchronize: !isProduction, // o synchronize: false, para producción
+          // --- CAMBIO MÁS IMPORTANTE PARA PRODUCCIÓN ---
+          synchronize: false, // ¡NUNCA true en producción después del setup inicial!
+                              // Alternativa: synchronize: !isProduction, (sería true para dev, false para prod)
 
           ssl: isProduction && dbUrl && dbUrl.includes('render.com') 
             ? { rejectUnauthorized: false } 
             : false,
           
-          logging: true, // Habilitar logging de TypeORM para ver qué hace. Desactiva en producción si es muy verboso.
+          logging: isProduction ? ['error'] : true, // En producción, loguear solo errores de DB. En dev, todo.
+                                                   // O `logging: false` para producción si no quieres logs de TypeORM.
+
+          // --- PREPARACIÓN PARA MIGRACIONES (Siguiente paso recomendado) ---
+          // migrationsTableName: 'migrations_history', // Nombre opcional para la tabla de historial de migraciones
+          // migrations: [__dirname + '/../migrations/*{.ts,.js}'], // Ajusta esta ruta cuando tengas migraciones
         };
       },
     }),
@@ -106,12 +118,6 @@ import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/e
       provide: APP_GUARD,
       useClass: JwtAuthGuard, 
     },
-    // Si RolesGuard es global, necesita estar aquí:
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: RolesGuard,
-    // },
-    // Pero si se usa con @UseGuards() en controladores/métodos, no se provee globalmente.
   ],
 })
 export class AppModule {}
