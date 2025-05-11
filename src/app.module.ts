@@ -22,6 +22,22 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard'; 
 import { RolesGuard } from './guards/roles.guard';
 
+//Entidades para typeORM
+import { User } from './accounts/user/entities/user.entity';
+import { Fragrance } from './fragrance/fragrance/entities/fragrance.entity';
+import { Container } from './candles/container/entities/container.entity';
+import { ConceptualCategory } from './scent_profiles/conceptual-category/entities/conceptual-category.entity'; // Asumo que tienes una entidad aquí
+import { Option } from './scent_profiles/options/entities/option.entity'; // Asumo 'Option' y no 'Options' para la clase entidad
+import { EmotionalState } from './scent_profiles/emotional-state/entities/emotional-state.entity'; // Asumo que tienes una entidad aquí
+import { FragrancePyramid } from './fragrance/fragrance-pyramid/entities/fragrance-pyramid.entity'; // Asumo que tienes una entidad aquí
+import { ComplementaryProduct } from './candles/complementary-product/entities/complementary-product.entity'; // Asumo que tienes una entidad aquí
+import { CustomCandle } from './candles/custom-candle/entities/custom-candle.entity'; // Asumo que tienes una entidad aquí
+import { CustomCandleComplementaryProduct } from './candles/custom-candle_complementary-product/entities/custom-candle_complementary-product.entity'; // Asumo que tienes una entidad aquí
+import { Order } from './order_process/orders/entities/order.entity'; // Asumo 'Order' y no 'Orders' para la clase entidad
+import { OrderItem } from './order_process/order-item/entities/order-item.entity'; // Asumo que tienes una entidad aquí
+import { Subscription } from './order_process/subscription/entities/subscription.entity'; // Asumo que tienes una entidad aquí
+import { EmotionalStateFragrance } from './fragrance/emotional-state_fragrance/entities/emotional-state_fragrance.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
