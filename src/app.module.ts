@@ -24,21 +24,57 @@ import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true}),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.get<string>('DATABASE_URL'),
-        synchronize: process.env.NODE_ENV !== 'production',
-        autoLoadEntities: true,
-        ssl: process.env.NODE_ENV === 'production' // Habilita SSL solo en producción
-          ? { rejectUnauthorized: false } // Necesario para Render y otros PaaS
-          : false,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        const nodeEnv = configService.get<string>('NODE_ENV'); // Obtener NODE_ENV desde ConfigService también
+        const isProduction = nodeEnv === 'production';
+
+        // Logging para depurar
+        console.log(`[AppModule] DATABASE_URL: ${dbUrl ? '**** (set)' : 'NOT SET'}`); // No loguear la URL completa por seguridad
+        console.log(`[AppModule] NODE_ENV: ${nodeEnv}`);
+        console.log(`[AppModule] Is Production: ${isProduction}`);
+        console.log(`[AppModule] SSL setting for DB: ${isProduction && dbUrl && dbUrl.includes('render.com')}`);
+        console.log(`[AppModule] Synchronize setting for DB: true (TEMPORALMENTE para crear tablas)`);
+
+        return {
+          type: 'postgres',
+          url: dbUrl,
+          entities: [
+            UserModule,
+            FragranceModule,
+            ContainerModule,
+            ConceptualCategoryModule,
+            OptionsModule, 
+            EmotionalStateModule,
+            FragrancePyramidModule,
+            ComplementaryProductModule,
+            CustomCandleModule,
+            CustomCandleComplementaryProductModule,
+            OrdersModule,
+            OrderItemModule,
+            SubscriptionModule,
+            EmotionalStateFragranceModule,
+          ],
+          // autoLoadEntities: true, // Comentado porque listar explícitamente es mejor
+          
+          synchronize: true, // ¡MUY IMPORTANTE PARA ESTE PASO!
+          // Una vez que las tablas se creen, cambia esto a:
+          // synchronize: !isProduction, // o synchronize: false, para producción
+
+          ssl: isProduction && dbUrl && dbUrl.includes('render.com') 
+            ? { rejectUnauthorized: false } 
+            : false,
+          
+          logging: true, // Habilitar logging de TypeORM para ver qué hace. Desactiva en producción si es muy verboso.
+        };
+      },
     }),
 
+    // Tus otros módulos
     ContainerModule,  
     FragranceModule, 
     UserModule, ConceptualCategoryModule, OptionsModule, EmotionalStateModule, 
@@ -50,11 +86,16 @@ import { RolesGuard } from './guards/roles.guard';
   controllers: [AppController],
   providers: [
     AppService,
-  
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, 
     },
+    // Si RolesGuard es global, necesita estar aquí:
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: RolesGuard,
+    // },
+    // Pero si se usa con @UseGuards() en controladores/métodos, no se provee globalmente.
   ],
 })
 export class AppModule {}
