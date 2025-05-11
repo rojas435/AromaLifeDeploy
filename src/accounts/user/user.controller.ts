@@ -30,7 +30,7 @@ export class UserController {
   }
 
   @Post()
-  @Roles('admin') 
+  @Public()
   create(@Body() createUser: CreateUserDto) {
     return this.userService.create(createUser);
   }
